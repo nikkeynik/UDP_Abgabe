@@ -1,7 +1,7 @@
 package message;
 
 public interface Message {
-    MsgType type();
-    int seq();
-    long time();
+    MsgType getType();
+    int getSeq();
+    long getTime();
 }

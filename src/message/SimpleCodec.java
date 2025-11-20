@@ -6,9 +6,9 @@ public final class SimpleCodec {
     public byte[] encode(Message msg) {
         String s = String.format(
             "type=%s;seq=%d;tm=%d",
-            msg.type(),
-            msg.seq(),
-            msg.time()
+            msg.getType(),
+            msg.getSeq(),
+            msg.getTime()
         );
         return s.getBytes(StandardCharsets.UTF_8);
     }

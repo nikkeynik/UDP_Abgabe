@@ -2,25 +2,25 @@ package message;
 
 public class Pong implements Message {
     private final int seq;
-    private final LOcalTime time;
+    private final long time;
 
-    public Pong(int seq, LocalTime time) {
+    public Pong(int seq, long time) {
         this.seq = seq;
         this.time = time;
     }
 
     @Override
-    public MsgType type() {
+    public MsgType getType() {
         return MsgType.PONG;
     }
 
     @Override
-    public int seq() {
+    public int getSeq() {
         return seq;
     }
 
     @Override
-    public LocalTime time() {
+    public long getTime() {
         return time;
     }
 

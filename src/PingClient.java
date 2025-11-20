@@ -20,10 +20,10 @@ public class PingClient {
         byte[] sendData = new byte[1024];
         byte[] receiveData = new byte[1024];
 
-        Message ping = new Ping(0, LocalTime.now());
+        Message ping = new Ping(0, System.nanoTime());
         sendData = codec.encode(ping);
 
-        DatagramPacket sendPacket = new datagramPacket(sendData, sendData.length, IPAddress, serverPort);
+        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
 
         clientSocket.send(sendPacket);
 
@@ -32,6 +32,8 @@ public class PingClient {
         clientSocket.receive(receivePacket);
         receiveData = receivePacket.getData();
         Message pong = codec.decode(receiveData);
+
+        long zeitDist = System.nanoTime() - pong.getTime();
 
 
 

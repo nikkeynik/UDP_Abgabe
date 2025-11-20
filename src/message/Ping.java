@@ -1,26 +1,27 @@
 package message;
 
+
 public class Ping implements Message {
     private final int seq;
-    private final LocalTime time;
+    private final long time;
 
-    public Ping(int seq, LocalTime time) {
+    public Ping(int seq, long time) {
         this.seq = seq;
         this.time = time;
     }
 
     @Override
-    public MsgType type() {
+    public MsgType getType() {
         return MsgType.PING;
     }
 
     @Override
-    public int seq() {
+    public int getSeq() {
         return seq;
     }
 
     @Override
-    public LocalTime time() {
+    public long getTime() {
         return time;
     }
 
