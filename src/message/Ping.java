@@ -2,9 +2,9 @@ package message;
 
 public class Ping implements Message {
     private final int seq;
-    private final long time;
+    private final LocalTime time;
 
-    public Ping(int seq, long time) {
+    public Ping(int seq, LocalTime time) {
         this.seq = seq;
         this.time = time;
     }
@@ -20,7 +20,7 @@ public class Ping implements Message {
     }
 
     @Override
-    public long time() {
+    public LocalTime time() {
         return time;
     }
 

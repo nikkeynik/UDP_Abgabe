@@ -2,9 +2,9 @@ package message;
 
 public class Pong implements Message {
     private final int seq;
-    private final long time;
+    private final LOcalTime time;
 
-    public Pong(int seq, long time) {
+    public Pong(int seq, LocalTime time) {
         this.seq = seq;
         this.time = time;
     }
@@ -20,7 +20,7 @@ public class Pong implements Message {
     }
 
     @Override
-    public long time() {
+    public LocalTime time() {
         return time;
     }
 
