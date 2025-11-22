@@ -18,9 +18,9 @@ public class PingServer {
             serverSocket.receive(receivePacket);
 
             Message ping = SimpleCodec.decode(receivePacket.getData());
-//            if(receivePacket.getLength() == 1024) {
-//                //
-//            }
+            if(receivePacket.getLength() == 1024) {
+
+            }
             Message pong = new Pong(ping.getSeq(), System.nanoTime());
 
             InetAddress ipAdress = receivePacket.getAddress();
