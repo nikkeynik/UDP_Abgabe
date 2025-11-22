@@ -1,7 +1,8 @@
-package gbn;
+package gbnMessage;
 
 import gbnMessage.GbnMessage;
 import gbnMessage.GbnPing;
+import gbnMessage.GbnPong;
 
 import java.nio.charset.StandardCharsets;
 
@@ -10,10 +11,11 @@ public final class GbnSimpleCodec {
 
     public static byte[] encode(GbnMessage msg) {
         String s = String.format(
-            "type=%s;seq=%d;tm=%d",
+            "type=%s;seq=%d;tm=%d;pnr=%d",
             msg.getType(),
             msg.getSeq(),
-            msg.getTime()
+            msg.getTime(),
+            msg.getPacketNr();
         );
         return s.getBytes(StandardCharsets.UTF_8);
     }
@@ -25,6 +27,7 @@ public final class GbnSimpleCodec {
         String type = null;
         int seq = 0;
         long ts = 0;
+        int pnr = 0;
 
         for (String part : parts) {
             String[] kv = part.split("=", 2);
@@ -34,6 +37,7 @@ public final class GbnSimpleCodec {
                 case "type" -> type = kv[1];
                 case "seq" -> seq = Integer.parseInt(kv[1]);
                 case "tm" -> ts =  Long.parseLong(kv[1].trim());
+                case "pnr" -> pnr = Integer.parseInt(kv[1].trim());
             }
         }
 
@@ -42,9 +46,9 @@ public final class GbnSimpleCodec {
 
         switch (type) {
             case "PING":
-                return new GbnPing(seq, ts);
+                return new GbnPing(seq, ts, pnr);
             case "PONG":
-                return new gbn.GbnPong(seq, ts);
+                return new GbnPong(seq, ts, pnr);
             default:
                 throw new IllegalArgumentException("Unknown type: " + type);
         }
