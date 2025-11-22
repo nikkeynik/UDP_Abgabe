@@ -21,7 +21,7 @@ public class GoBackNServer {
             Message ping = SimpleCodec.decode(receivePacket.getData());
             try{
                 if(actNr+1 != ping.getPacketNr()){
-                    
+                    throw new MissingPacketException();
                 }
                 else{
                     actNr = ping.getPacketNr();
