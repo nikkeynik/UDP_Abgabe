@@ -7,7 +7,8 @@ import java.io.*;
 public class PingClient {
 
     public static void main(String[] args) throws Exception {
-        SimpleCodec codec = new SimpleCodec();
+        long rtt = 5000;
+        boolean timeout = true;
 
         // UDP-Socket anlegen
         DatagramSocket clientSocket = new DatagramSocket();
@@ -21,25 +22,36 @@ public class PingClient {
         byte[] receiveData = new byte[1024];
 
         Message ping = new Ping(0, System.nanoTime());
-        sendData = codec.encode(ping);
-
+        sendData = encode(ping);
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
-
-        clientSocket.send(sendPacket);
-
         DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        
+        while(timeout){
+            timeout = false;
+            clientSocket.send(sendPacket);
 
-        clientSocket.receive(receivePacket);
-        receiveData = receivePacket.getData();
-        Message pong = codec.decode(receiveData);
+            socket.setSoTimeout(rtt);
+            System.out.println("Warte auf UDP-Paket (Timeout: " + rtt + " Millisekunden)...");
 
-        long zeitDist = System.nanoTime() - pong.getTime();
+            try{
+                
+                clientSocket.receive(receivePacket);
+                receiveData = receivePacket.getData();
+                Message pong = decode(receiveData);
 
+                long zeitDist = System.nanoTime() - pong.getTime();
 
+                System.out.println("Ping-Pong-Dauer: " + (zeitDist / 1e+6) + " Nanosekunden");
 
+            } catch (SocketTimeoutException e){
+                System.out.println("Timeout: Innerhalb von " + rtt +" Millisekunden wurde nichts empfangen.");
+                timeout = true;
+            }
 
+        }
 
 
         clientSocket.close();
+        System.out.println("Socket geschlossen. Programm Ende");
     }
 }
