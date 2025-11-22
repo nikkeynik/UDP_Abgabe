@@ -22,7 +22,7 @@ public class PingClient {
         byte[] receiveData = new byte[1024];
 
         Message ping = new Ping(0, System.nanoTime());
-        sendData = encode(ping);
+        sendData = SimpleCodec.encode(ping);
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
         DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
         
@@ -30,14 +30,14 @@ public class PingClient {
             timeout = false;
             clientSocket.send(sendPacket);
 
-            socket.setSoTimeout(rtt);
+            clientSocket.setSoTimeout((int) rtt);
             System.out.println("Warte auf UDP-Paket (Timeout: " + rtt + " Millisekunden)...");
 
             try{
                 
                 clientSocket.receive(receivePacket);
                 receiveData = receivePacket.getData();
-                Message pong = decode(receiveData);
+                Message pong = SimpleCodec.decode(receiveData);
 
                 long zeitDist = System.nanoTime() - pong.getTime();
 

@@ -17,7 +17,6 @@ public class PingServer {
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             serverSocket.receive(receivePacket);
 
-            //String sentence = new String(receivePacket.getData()).toUpperCase();
             Message ping = SimpleCodec.decode(receivePacket.getData());
 //            if(receivePacket.getLength() == 1024) {
 //                //
