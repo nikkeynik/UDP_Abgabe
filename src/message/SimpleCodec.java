@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets;
 
 public final class SimpleCodec {
 
-    public byte[] encode(Message msg) {
+    public static byte[] encode(Message msg) {
         String s = String.format(
             "type=%s;seq=%d;tm=%d",
             msg.getType(),
@@ -13,7 +13,7 @@ public final class SimpleCodec {
         return s.getBytes(StandardCharsets.UTF_8);
     }
 
-    public Message decode(byte[] bytes) {
+    public static Message decode(byte[] bytes) {
         String s = new String(bytes, StandardCharsets.UTF_8);
         String[] parts = s.split(";");
 
