@@ -15,7 +15,7 @@ public final class GbnSimpleCodec {
             msg.getType(),
             msg.getSeq(),
             msg.getTime(),
-            msg.getPacketNr();
+            msg.getPacketNr()
         );
         return s.getBytes(StandardCharsets.UTF_8);
     }

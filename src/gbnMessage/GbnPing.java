@@ -28,7 +28,7 @@ public class GbnPing implements GbnMessage {
 
     @Override
     public int getPacketNr() {
-        return 0;
+        return PACKET_NUMBER;
     }
 
     @Override
