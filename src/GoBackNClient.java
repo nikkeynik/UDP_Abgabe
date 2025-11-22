@@ -1,6 +1,4 @@
-import message.Message;
-import message.Ping;
-import message.SimpleCodec;
+import gbnMessage.*;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -26,13 +24,15 @@ public class GoBackNClient {
         byte[] receiveData = new byte[1024];
 
         for(int i = 1; i < N+1; i++) {
-            Message ping = new Ping(0, System.nanoTime());
-            sendData = SimpleCodec.encode(ping);
+            GbnMessage ping = new GbnPing(0, System.nanoTime(),);
+            sendData = GbnSimpleCodec.encode(ping);
+
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 
             while(timeout){
                 timeout = false;
+
                 clientSocket.send(sendPacket);
 
                 clientSocket.setSoTimeout((int) rtt);
@@ -42,7 +42,7 @@ public class GoBackNClient {
 
                     clientSocket.receive(receivePacket);
                     receiveData = receivePacket.getData();
-                    Message pong = SimpleCodec.decode(receiveData);
+                    GbnMessage pong = GbnSimpleCodec.decode(receiveData);
 
                     long zeitDist = System.nanoTime() - pong.getTime();
 

@@ -3,10 +3,12 @@ package gbnMessage;
 public class GbnPing implements GbnMessage {
     private final int seq;
     private final long time;
+    private final int PACKET_NUMBER;
 
-    public GbnPing(int seq, long time) {
+    public GbnPing(int seq, long time, int packetNumber) {
         this.seq = seq;
         this.time = time;
+        this.PACKET_NUMBER = packetNumber;
     }
 
     @Override
