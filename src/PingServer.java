@@ -17,19 +17,26 @@ public class PingServer {
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             serverSocket.receive(receivePacket);
 
-            Message ping = SimpleCodec.decode(receivePacket.getData());
-//            if(receivePacket.getLength() == 1024) {
-//                //
-//            }
-            Message pong = new Pong(ping.getSeq(), System.nanoTime());
+            try {
+                Message ping = SimpleCodec.decode(receivePacket.getData());
+                
+                Message pong = new Pong(ping.getSeq(), System.nanoTime());
+                
+                InetAddress ipAdress = receivePacket.getAddress();
+                int port = receivePacket.getPort();
 
-            InetAddress ipAdress = receivePacket.getAddress();
-            int port = receivePacket.getPort();
+                 sendData = SimpleCodec.encode(pong);
+                 
+                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
+                 serverSocket.send(sendPacket);
 
-            sendData = SimpleCodec.encode(pong);
+                 System.out.println("Ping empfangen, Pong gesendet. Checksumme OK");
+            } catch (IllegalArgumentException e) {
 
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
-            serverSocket.send(sendPacket);
+                System.out.println("Fehler beim Prüfen der Cheksumme: " + e.getMessage());
+                
+            }
+            
         }
     }
 }

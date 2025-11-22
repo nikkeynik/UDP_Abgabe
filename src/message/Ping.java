@@ -4,10 +4,25 @@ package message;
 public class Ping implements Message {
     private final int seq;
     private final long time;
+    private final int checksum;
 
     public Ping(int seq, long time) {
         this.seq = seq;
         this.time = time;
+        this.checksum = computeChecksum();
+    }
+
+    public Ping(int seq, long time, int checksum) {
+        this.seq = seq;
+        this.time = time;
+        this.checksum = checksum;
+    }
+
+    private int computeChecksum() {
+        String data = "PING" + seq + time;
+        int sum = 0;
+        for (char c : data.toCharArray()) sum += c;
+        return sum % 256;
     }
 
     @Override
@@ -26,7 +41,12 @@ public class Ping implements Message {
     }
 
     @Override
+    public int getChecksum() {
+        return checksum;
+    }
+
+    @Override
     public String toString() {
-        return "Ping[seq=" + seq + ", ts=" + time + "]";
+        return "Ping [ seq=" + seq + ", ts=" + time + ", checksum=" + checksum + " ]";
     }
 }

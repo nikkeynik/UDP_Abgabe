@@ -38,6 +38,7 @@ public class PingClient {
                 clientSocket.receive(receivePacket);
                 receiveData = receivePacket.getData();
                 Message pong = SimpleCodec.decode(receiveData);
+                System.out.println("Cheksumme überprüft: OK");
 
                 long zeitDist = System.nanoTime() - pong.getTime();
 
@@ -52,6 +53,6 @@ public class PingClient {
 
 
         clientSocket.close();
-        System.out.println("Socket geschlossen. Programm Ende");
+        System.out.println("Socket geschlossen. Programmende");
     }
 }

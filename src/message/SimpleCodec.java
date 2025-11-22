@@ -6,10 +6,11 @@ public final class SimpleCodec {
 
     public static byte[] encode(Message msg) {
         String s = String.format(
-            "type=%s;seq=%d;tm=%d",
+             "type=%s;seq=%d;tm=%d;cs=%d",
             msg.getType(),
             msg.getSeq(),
-            msg.getTime()
+            msg.getTime(),
+            msg.getChecksum()
         );
         return s.getBytes(StandardCharsets.UTF_8);
     }
@@ -21,6 +22,7 @@ public final class SimpleCodec {
         String type = null;
         int seq = 0;
         long ts = 0;
+        int cs = 0;
 
         for (String part : parts) {
             String[] kv = part.split("=", 2);
@@ -30,19 +32,32 @@ public final class SimpleCodec {
                 case "type" -> type = kv[1];
                 case "seq" -> seq = Integer.parseInt(kv[1]);
                 case "tm" -> ts =  Long.parseLong(kv[1].trim());
+                case "cs" -> cs = Integer.parseInt(kv[1].trim());
             }
         }
 
         if (type == null)
-            throw new IllegalArgumentException("Missing type in message: " + s);
+            throw new IllegalArgumentException("Fehlender Typ in der Nachricht: " + s);
+
+        //cheksumme berechnen
+        int berechneteChecksum = 0;
+        String data = type + seq + ts;
+        for (char c : data.toCharArray()) berechneteChecksum += c;
+        berechneteChecksum %= 256;
+
+        System.out.println("[CHECKSUMME] Empfangen: " + cs + ", Berechnet: " + berechneteChecksum);
+
+        if (berechneteChecksum != cs) {
+            throw new IllegalArgumentException("Prüfsummenfehler! Empfangen: " + cs + ", berechnet : " + berechneteChecksum);
+        }
 
         switch (type) {
             case "PING":
-                return new Ping(seq, ts);
+                return new Ping(seq, ts, cs);
             case "PONG":
-                return new Pong(seq, ts);
+                return new Pong(seq, ts, cs);
             default:
-                throw new IllegalArgumentException("Unknown type: " + type);
+                throw new IllegalArgumentException("Unbekannter Typ: " + type);
         }
     }
 }
