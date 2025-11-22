@@ -17,6 +17,7 @@ public class PingServer {
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             serverSocket.receive(receivePacket);
 
+<<<<<<< HEAD
             try {
                 Message ping = SimpleCodec.decode(receivePacket.getData());
                 
@@ -24,6 +25,13 @@ public class PingServer {
                 
                 InetAddress ipAdress = receivePacket.getAddress();
                 int port = receivePacket.getPort();
+=======
+            Message ping = SimpleCodec.decode(receivePacket.getData());
+            if(receivePacket.getLength() == 1024) {
+
+            }
+            Message pong = new Pong(ping.getSeq(), System.nanoTime());
+>>>>>>> 949d44526d0591a2f8f7db0366d53226b3e81ee4
 
                  sendData = SimpleCodec.encode(pong);
                  

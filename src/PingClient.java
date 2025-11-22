@@ -42,7 +42,7 @@ public class PingClient {
 
                 long zeitDist = System.nanoTime() - pong.getTime();
 
-                System.out.println("Ping-Pong-Dauer: " + (zeitDist / 1e+6) + " Nanosekunden");
+                System.out.println("Ping-Pong-Dauer: " + (zeitDist) + " Nanosekunden");
 
             } catch (SocketTimeoutException e){
                 System.out.println("Timeout: Innerhalb von " + rtt +" Millisekunden wurde nichts empfangen.");
