@@ -1,6 +1,7 @@
 package message;
 import java.nio.charset.StandardCharsets;
 
+
 public final class SimpleCodec {
 
     public static byte[] encode(Message msg) {
@@ -28,7 +29,7 @@ public final class SimpleCodec {
             switch (kv[0]) {
                 case "type" -> type = kv[1];
                 case "seq" -> seq = Integer.parseInt(kv[1]);
-                case "tm" -> ts = Long.parseLong(kv[1]);
+                case "tm" -> ts =  Long.parseLong(kv[1].trim());
             }
         }
 
