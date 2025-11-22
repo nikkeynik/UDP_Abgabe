@@ -1,3 +1,9 @@
+import java.net.*;
+
+import message.*;
+
+import java.io.*;
+
 public class GoBackNServer {
 
     public static void main(String[] args) throws Exception {
@@ -13,9 +19,6 @@ public class GoBackNServer {
             serverSocket.receive(receivePacket);
 
             Message ping = SimpleCodec.decode(receivePacket.getData());
-            if(receivePacket.getLength() == 1024) {
-
-            }
             try{
                 if(actNr+1 != ping.getPacketNr()){
                     
@@ -34,7 +37,13 @@ public class GoBackNServer {
                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
                 serverSocket.send(sendPacket);
             } catch (MissingPacketException e){
-                System.out.println("Packet " + (actNr+1) + " fehlt. Packet wird verworfen.");
+                System.out.println("Packet " + (actNr+1) + " fehlt. Packet " + ping.PacketNr() + "wird verworfen.");
+                Message pong = new GbnPong(ping.getSeq(), System.nanoTime(), actNr);
+                InetAddress ipAdress = receivePacket.getAddress();
+                int port = receivePacket.getPort();
+                sendData = SimpleCodec.encode(pong);
+                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
+                serverSocket.send(sendPacket);
             }
         }
     }
