@@ -1,3 +1,5 @@
+package gbnMessage;
+
 public class MissingPacketException extends Exception{
     public MissingPacketException(){
         super();

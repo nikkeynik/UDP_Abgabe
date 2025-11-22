@@ -1,64 +1,109 @@
-import gbnMessage.*;
+import java.net.*;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketTimeoutException;
+import gbnMessage.GbnMessage;
+import gbnMessage.GbnPing;
+import gbnMessage.GbnSimpleCodec;
 
-public class GoBackNClient {
-    public static void main(String[] args) throws Exception {
-        final int N = 4;
-        long rtt = 5000;
-        boolean timeout = true;
+import java.io.*;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+public class GoBackNClient extends Thread {
+    final long TIMEOUT = 5_000_000_000L; // in nanosekunden
+    final int WINDOW = 5;
 
-        DatagramSocket clientSocket = new DatagramSocket();
+    int base = 0;
+    int nextSeqNum = 0;
+    Map<Integer, Long> timestamps = new ConcurrentHashMap<>();
+    CopyOnWriteArrayList<Integer> received = new CopyOnWriteArrayList<>();
 
-        InetAddress serverAddress = InetAddress.getByName("localhost");
-        int serverPort = 9876;
+    @Override
+    public void run() {
+        DatagramSocket socket;
+        try { socket = new DatagramSocket(); }
+        catch (Exception e) { throw new RuntimeException(e); }
 
-        System.out.println("[CLIENT] Verbinde zu " + serverAddress + ":" + serverPort);
+        InetAddress ipAdress;
+        try { ipAdress = InetAddress.getByName("localhost"); }
+        catch (Exception e) { throw new RuntimeException(e); }
 
+        int port = 9876;
 
-        byte[] sendData = new byte[1024];
-        byte[] receiveData = new byte[1024];
+        // receive
+        new Thread(() -> {
+            while(true) {
+                try {
+                    byte[] receiveBytes = new byte[1024];
+                    DatagramPacket receivePacket = new DatagramPacket(receiveBytes, receiveBytes.length);
+                    socket.receive(receivePacket);
+                    GbnMessage receiveMessage = GbnSimpleCodec.decode(receiveBytes);
 
-        for(int i = 1; i < N+1; i++) {
-            GbnMessage ping = new GbnPing(0, System.nanoTime(),);
-            sendData = GbnSimpleCodec.encode(ping);
+                    received.add(receiveMessage.getPacketNr());
 
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-
-            while(timeout){
-                timeout = false;
-
-                clientSocket.send(sendPacket);
-
-                clientSocket.setSoTimeout((int) rtt);
-                System.out.println("Warte auf UDP-Paket (Timeout: " + rtt + " Millisekunden)...");
-
-                try{
-
-                    clientSocket.receive(receivePacket);
-                    receiveData = receivePacket.getData();
-                    GbnMessage pong = GbnSimpleCodec.decode(receiveData);
-
-                    long zeitDist = System.nanoTime() - pong.getTime();
-
-                    System.out.println("Ping-Pong-Dauer: " + (zeitDist) + " Nanosekunden");
-
-                } catch (SocketTimeoutException e){
-                    System.out.println("Timeout: Innerhalb von " + rtt +" Millisekunden wurde nichts empfangen.");
-                    timeout = true;
+                    System.out.println(   "|  ACK für Packet Nummer " + receiveMessage.getPacketNr()+ " empfangen."+
+                                        "\n|  Dauer der Übertragung: "+ calculateDuration(receiveMessage.getPacketNr())+" Sekunden.\n\n");
                 }
+                catch (Exception e) { e.printStackTrace(); }
+            }
+        }).start();
 
+
+        // logik
+        while(true) {
+
+            // window size prüfen
+            if(nextSeqNum < base + WINDOW) {
+                sendPacket(socket, ipAdress, port, nextSeqNum);
+                timestamps.put(nextSeqNum, System.nanoTime());
+                nextSeqNum++;
             }
 
+            // receive prüfen
+            while(received.contains(base)) {
+                base++;
+            }
 
-            clientSocket.close();
-            System.out.println("Socket geschlossen. Programm Ende");
+            // abgelaufene timeouts prüfen
+            if(base < nextSeqNum) {
+                long currentTimestamp = timestamps.get(base);
+                if(System.nanoTime() - currentTimestamp > TIMEOUT) {
+                    System.out.println("Timeout des Packets Nummer " + base);
+                    for(int i = base; i < nextSeqNum; i++) {
+                        sendPacket(socket, ipAdress, port, i);
+                        timestamps.put(i, System.nanoTime());
+                    }
+                }
+            }
         }
+    }
+
+
+    private void sendPacket(DatagramSocket socket, InetAddress ipAdress, int port, int num) {
+        try {
+            byte[] send = GbnSimpleCodec.encode(
+                    new GbnPing(0, System.nanoTime(), num)
+            );
+            DatagramPacket p = new DatagramPacket(send, send.length, ipAdress, port);
+            socket.send(p);
+            System.out.println("Sende Packet Nummer " + num);
         }
+        catch (Exception e) { e.printStackTrace(); }
+    }
+
+    public static void main(String[] args) throws Exception {
+        new Thread(new GoBackNClient()).start();
+    }
+
+    private double calculateDuration(int packetNr) {
+        Long packetSendTimestamp = timestamps.get(packetNr);
+        if(packetSendTimestamp == null){
+            System.err.println("ACK aus anderer Session. Kein Timestamp für Packet "+packetNr+" vorhanden.\n");
+            return -1;
+        }
+        long durationNs = System.nanoTime() - packetSendTimestamp;
+        double durationMs = durationNs / 1_000_000.0;
+        return durationMs/1000;
+    }
 
 }

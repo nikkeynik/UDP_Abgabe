@@ -1,5 +1,6 @@
 import java.net.*;
 
+import gbnMessage.*;
 import message.*;
 
 import java.io.*;
@@ -9,7 +10,6 @@ public class GoBackNServer {
     public static void main(String[] args) throws Exception {
         DatagramSocket serverSocket = new DatagramSocket(9876);
         byte[] receiveData = new byte[1024];
-        byte[] sendData = new byte[1024];
         int actNr = -1;
 
         System.out.println("[SERVER] Server läuft auf Port 9876");
@@ -18,7 +18,7 @@ public class GoBackNServer {
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             serverSocket.receive(receivePacket);
 
-            Message ping = SimpleCodec.decode(receivePacket.getData());
+            GbnMessage ping = GbnSimpleCodec.decode(receivePacket.getData());
             try{
                 if(actNr+1 != ping.getPacketNr()){
                     throw new MissingPacketException();
@@ -27,21 +27,21 @@ public class GoBackNServer {
                     actNr = ping.getPacketNr();
                 }
 
-                Message pong = new GbnPong(ping.getSeq(), System.nanoTime(), ping.getPacketNr());
+                GbnMessage pong = new GbnPong(ping.getSeq(), System.nanoTime(), ping.getPacketNr());
 
                 InetAddress ipAdress = receivePacket.getAddress();
                 int port = receivePacket.getPort();
 
-                sendData = SimpleCodec.encode(pong);
+                byte[] sendData = GbnSimpleCodec.encode(pong);
 
                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
                 serverSocket.send(sendPacket);
             } catch (MissingPacketException e){
-                System.out.println("Packet " + (actNr+1) + " fehlt. Packet " + ping.PacketNr() + "wird verworfen.");
-                Message pong = new GbnPong(ping.getSeq(), System.nanoTime(), actNr);
+                System.out.println("Packet " + (actNr+1) + " fehlt. Packet " + ping.getPacketNr() + "wird verworfen.");
+                GbnMessage pong = new GbnPong(ping.getSeq(), System.nanoTime(), actNr);
                 InetAddress ipAdress = receivePacket.getAddress();
                 int port = receivePacket.getPort();
-                sendData = SimpleCodec.encode(pong);
+                byte[] sendData = GbnSimpleCodec.encode(pong);
                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
                 serverSocket.send(sendPacket);
             }
