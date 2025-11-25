@@ -10,8 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class GoBackNClient extends Thread {
-    final long TIMEOUT = 5_000_000_000L; // in nanosekunden
     final int WINDOW = 5;
+    final float alpha = 0.125;
+    long estimatedRTT = 3_000_000_000L;
+    long sampleRTT;
 
     int base = 0;
     int nextSeqNum = 0;
@@ -43,6 +45,8 @@ public class GoBackNClient extends Thread {
 
                     System.out.println(   "|  ACK für Packet Nummer " + receiveMessage.getPacketNr()+ " empfangen."+
                                         "\n|  Dauer der Übertragung: "+ calculateDuration(receiveMessage.getPacketNr())+" Sekunden.\n\n");
+                    sampleRTT = calculateDuration(receiveMessage.getPacketNr()) * 1_000_000_000L;
+                    estimatedRTT = (1-alpha) * estimatedRTT + alpha * sampleRTT;
                 }
                 catch (Exception e) { e.printStackTrace(); }
             }
@@ -67,7 +71,7 @@ public class GoBackNClient extends Thread {
             // abgelaufene timeouts prüfen
             if(base < nextSeqNum) {
                 long currentTimestamp = timestamps.get(base);
-                if(System.nanoTime() - currentTimestamp > TIMEOUT) {
+                if(System.nanoTime() - currentTimestamp > estimatedRTT) {
                     System.out.println("Timeout des Packets Nummer " + base);
                     for(int i = base; i < nextSeqNum; i++) {
                         sendPacket(socket, ipAdress, port, i);
