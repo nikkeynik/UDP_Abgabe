@@ -4,93 +4,120 @@ import message.*;
 public class PingClient {
 
     public static void main(String[] args) throws Exception {
-        long rtt = 5000;
 
-        DatagramSocket clientSocket = new DatagramSocket();
-        InetAddress serverAddress = InetAddress.getByName("localhost");
+        DatagramSocket socket = new DatagramSocket();
+        socket.setSoTimeout(5000);
+
+        InetAddress serverIP = InetAddress.getByName("localhost");
         int serverPort = 9876;
 
-        System.out.println("[CLIENT] Verbinde zu " + serverAddress + ":" + serverPort);
+        int seq = 0;
 
-        byte[] receiveData = new byte[1024];
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        System.out.println("[CLIENT] Starte Stop-and-Wait Client...");
 
-       
-        //korrekt
-        Message ping = new Ping(0, System.nanoTime());
-        byte[] sendData = SimpleCodec.encode(ping);
-        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
+        // Ping(0) korrekt
+        SimpleMessage ping1 = new SimpleMessage(MsgType.PING, seq);
+        byte[] sendData1 = SimpleCodec.encode(ping1);
 
-        System.out.println("\n[CLIENT] Sende korrektes Message Ping");
+        DatagramPacket sendPacket1 = new DatagramPacket(sendData1, sendData1.length, serverIP, serverPort);
+        System.out.println("\n[CLIENT] Zustand: WARTE_AUF_AUFRUF " + seq);
+        System.out.println("[CLIENT] SENDE_PING_(" + seq + ") ...");
+        socket.send(sendPacket1);
 
-        sendenUndEmpfangen(clientSocket, sendPacket, receivePacket, rtt, 0);// Zustand: Warten auf Antwort seq=0
-        
-        
-        //fehlerhaft
-        Message pingBad = new Ping(1, System.nanoTime());
-        byte[] badData = SimpleCodec.encode(pingBad);
+        boolean korrektesPongErhalten = false;
+        while (!korrektesPongErhalten) {
+            try {
+                byte[] recvData = new byte[1024];
+                DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+                System.out.println("[CLIENT] WARTE_AUF_PONG(" + seq + ") ...");
+                socket.receive(recvPacket);
 
-        badData[badData.length - 1] += 1;// beschädigen für falsche checksum
-        System.out.println("\n[CLIENT] Sende fehlerhaftes Message Ping");
-
-        try {
-            SimpleCodec.decode(badData); // falls OK — sollte nicht sein
-            DatagramPacket sendPacketBad =
-                    new DatagramPacket(badData, badData.length, serverAddress, serverPort);
-            sendenUndEmpfangen(clientSocket, sendPacketBad, receivePacket, rtt, 1);
-
-        } catch (IllegalArgumentException e) {
-            
-            System.out.println("[CLIENT] Checksumme NICHT OK");// messadge ist beschädigt
-            System.out.println(e.getMessage());
-
-            DatagramPacket sendPacketBad =
-                    new DatagramPacket(badData, badData.length, serverAddress, serverPort);
-
-            // Zustand: Warten auf Antwort seq=1
-            sendenUndEmpfangen(clientSocket, sendPacketBad, receivePacket, rtt, 1);
+                Message msg = SimpleCodec.decode(recvPacket.getData(), recvPacket.getLength());
+                if (msg.getType() == MsgType.PONG && msg.getSeq() == seq) {
+                    System.out.println("[CLIENT] Korrektes Pong(" + seq + ") erhalten.");
+                    korrektesPongErhalten = true;
+                }
+            } catch (SocketTimeoutException e) {
+                System.out.println("[CLIENT] Timeout! Sende Ping(" + seq + ") erneut...");
+                socket.send(sendPacket1);
+            }
         }
 
-        clientSocket.close();
-        System.out.println("\nSocket geschlossen. Programmende");
-    }
+        // seq wechseln
+        seq = 1 - seq;
 
-    private static void sendenUndEmpfangen(
-            DatagramSocket socket,
-            DatagramPacket sendPacket,
-            DatagramPacket receivePacket,
-            long timeoutMs,
-            int seq
-    ) {
+        // 2 Ping – beschädigt + retry
+        SimpleMessage ping2 = new SimpleMessage(MsgType.PING, seq);
+        byte[] sendData2 = SimpleCodec.encode(ping2);
+        sendData2[0] ^= 0xFF;  // beschädigen
 
-        try {
-            // sendPING()
-            socket.send(sendPacket);
-            socket.setSoTimeout((int) timeoutMs);
+        System.out.println("\n[CLIENT] Packet ist beschädigt");
+        DatagramPacket sendPacket2 = new DatagramPacket(sendData2, sendData2.length, serverIP, serverPort);
 
-            System.out.println("Warte auf Antwort (Timeout: " + timeoutMs + " ms)...");
+        boolean pongFuerBeschaedigt = false;
+        int versuche = 0;
+        int MAX_VERSUCHE = 3;
 
-            // Warten auf Antwort
-            socket.receive(receivePacket);
-            byte[] data = receivePacket.getData();
+        while (!pongFuerBeschaedigt && versuche < MAX_VERSUCHE) {
+            System.out.println("[CLIENT] SENDE_PING_(" + seq + ") (beschädigt) ...");
+            socket.send(sendPacket2);
 
             try {
-                Message msg = SimpleCodec.decode(data);
-                System.out.println("Checksumme überprüft: OK");
+                byte[] recvData = new byte[1024];
+                DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+                System.out.println("[CLIENT] WARTE_AUF_PONG(" + seq + ") ...");
+                socket.receive(recvPacket);
 
-                long rttNano = System.nanoTime() - msg.getTime();
-                System.out.println("Ping-Pong-Dauer: " + rttNano + " Nanosekunden");
+                Message msg = SimpleCodec.decode(recvPacket.getData(), recvPacket.getLength());
+                if (msg.getType() == MsgType.PONG) {
+                    System.out.println("[CLIENT] Pong erhalten (unerwartet!): " + msg);
+                    pongFuerBeschaedigt = true;
+                }
 
-            } catch (IllegalArgumentException e) {
-                // besch'digt - Zustand bleibt gleich
-                System.out.println(e.getMessage());
+            } catch (SocketTimeoutException e) {
+                System.out.println("[CLIENT] Timeout! Kein Pong erhalten. Versuch " + (versuche + 1) + "/" + MAX_VERSUCHE);
+                versuche++;
             }
-
-        } catch (SocketTimeoutException e) {
-            // timeout - resendPing(seq)
-            System.out.println("Timeout! Keine Antwort erhalten.");
-        } catch (Exception e) {
-            System.out.println("Fehler: " + e.getMessage());
         }
+
+        if (!pongFuerBeschaedigt)
+            System.out.println("[CLIENT] Bestätigt: beschädigtes Ping(" + seq + ") führt zu keinem Pong.");
+
+        // Duplikat
+        System.out.println("\n[CLIENT] Sende absichtlich DUPLIKAT Ping(" + seq + ") ...");
+        socket.send(sendPacket2);
+
+        try {
+            byte[] recvData = new byte[1024];
+            DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+            socket.receive(recvPacket);
+        } catch (SocketTimeoutException e) {
+            System.out.println("[CLIENT] Kein Pong auf Duplikat erhalten (korrektes Verhalten).");
+        }
+
+        // PING(1) korrekt
+        SimpleMessage ping2_ok = new SimpleMessage(MsgType.PING, seq);
+        byte[] sendData2_ok = SimpleCodec.encode(ping2_ok);
+
+        DatagramPacket sendPacket2_ok = new DatagramPacket(sendData2_ok, sendData2_ok.length, serverIP, serverPort);
+        System.out.println("\n[CLIENT] SENDE_PING_(" + seq + ") (korrekt) ...");
+        socket.send(sendPacket2_ok);
+
+        try {
+            byte[] recvData = new byte[1024];
+            DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+            System.out.println("[CLIENT] WARTE_AUF_PONG(" + seq + ") ...");
+            socket.receive(recvPacket);
+
+            Message msg = SimpleCodec.decode(recvPacket.getData(), recvPacket.getLength());
+            if (msg.getType() == MsgType.PONG) {
+                System.out.println("[CLIENT] Korrektes Pong erhalten: " + msg);
+            }
+        } catch (SocketTimeoutException e) {
+            System.out.println("[CLIENT] Fehler: Server hätte jetzt antworten müssen!");
+        }
+
+        System.out.println("\n[CLIENT] Client beendet.");
+        socket.close();
     }
 }

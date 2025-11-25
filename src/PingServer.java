@@ -1,39 +1,77 @@
 import java.net.*;
-import java.io.*;
-
 import message.*;
 
 public class PingServer {
 
-   public static void main(String[] args) throws Exception {
-    System.out.println("[SERVER] Server läuft auf Port 9876");
+    public static void main(String[] args) throws Exception {
 
-    try (DatagramSocket serverSocket = new DatagramSocket(9876)) {
-        byte[] receiveData = new byte[1024];
-        byte[] sendData = new byte[1024];
+        DatagramSocket socket = new DatagramSocket(9876);
+        System.out.println("[SERVER] Stop-and-Wait Server gestartet auf Port 9876 ...");
 
-        while (true) {
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-            serverSocket.receive(receivePacket);
+        int erwarteteSeq = 0;
+        int maxPings = 2;
+        int processed = 0;
 
-            try {
-                Message ping = SimpleCodec.decode(receivePacket.getData()); //Zustand: Empfange PING (seq = 0 oder seq = 1)/
+        try {
 
-                Message pong = new Pong(ping.getSeq(), System.nanoTime()); //erstellePong(seq, time, checksum)
+            while (processed < maxPings) {
 
-                InetAddress ipAdress = receivePacket.getAddress();
-                int port = receivePacket.getPort();
+                byte[] recvData = new byte[1024];
+                DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
 
-                sendData = SimpleCodec.encode(pong); //erstellePong(seq, time, checksum)
-                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAdress, port);
-                serverSocket.send(sendPacket);
+                System.out.println("\n[SERVER] Zustand: WARTE_AUF_ANFRAGE(PING)_" + erwarteteSeq);
 
-                System.out.println("Ping empfangen, Pong gesendet. Checksumme OK");
+                socket.receive(recvPacket);
 
-            } catch (IllegalArgumentException e) {
-                System.out.println("Fehler beim Prüfen der Checksumme: " + e.getMessage());
+                Message msg;
+
+                try {
+                    msg = SimpleCodec.decode(recvPacket.getData(), recvPacket.getLength());
+                } catch (Exception e) {
+                    System.out.println("[SERVER] Prüfsummenfehler - beschädigtes Paket ignoriert");
+                    continue;
+                }
+
+                if (msg.getType() == MsgType.PING) {
+
+                    System.out.println("[SERVER] Ping erhalten: " + msg);
+
+                    int seq = msg.getSeq();
+                    InetAddress clientIP = recvPacket.getAddress();
+                    int clientPort = recvPacket.getPort();
+
+                    SimpleMessage pong = new SimpleMessage(MsgType.PONG, seq);
+                    byte[] sendData = SimpleCodec.encode(pong);
+                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, clientIP, clientPort);
+
+                    if (seq == erwarteteSeq) {
+                        System.out.println("[SERVER] Richtige Sequenznummer erhalten: " + seq);
+                        System.out.println("[SERVER] Verarbeite Ping(" + seq + ")");
+                        System.out.println("[SERVER] Sende Pong(" + seq + ")");
+
+                        socket.send(sendPacket);
+
+                        erwarteteSeq = 1 - erwarteteSeq;
+                        processed++;
+
+                        System.out.println("[SERVER] Wechsel zu WARTE_AUF_PING_" + erwarteteSeq);
+                        System.out.println("[SERVER] Verarbeitet: " + processed + "/" + maxPings);
+
+                    } else {
+                        System.out.println("[SERVER] Duplikat erkannt oder falsches Seq (seq=" + seq + ")");
+                        System.out.println("[SERVER] Paket ignoriert / kein Pong gesendet");
+                    }
+
+                } else {
+                    System.out.println("[SERVER] Unerwarteter Nachrichtentyp: " + msg.getType());
+                }
             }
+
+        } finally {
+            System.out.println("\n[SERVER] Maximalzahl der Pings erreicht. Server wird geschlossen...");
+            socket.close();
         }
+
+        System.out.println("[SERVER] Socket geschlossen. Server beendet.");
     }
-}
 }
