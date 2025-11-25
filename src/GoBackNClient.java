@@ -11,9 +11,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class GoBackNClient extends Thread {
     final int WINDOW = 5;
-    final float alpha = 0.125;
-    long estimatedRTT = 3_000_000_000L;
-    long sampleRTT;
+    final float alpha = 0.125f;
+    double estimatedRTT = 3_000_000_000L;
+    double sampleRTT;
 
     int base = 0;
     int nextSeqNum = 0;
