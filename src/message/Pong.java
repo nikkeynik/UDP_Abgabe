@@ -8,7 +8,7 @@ public class Pong implements Message {
     public Pong(int seq, long time) {
         this.seq = seq;
         this.time = time;
-        this.checksum = computeChecksum();
+        this.checksum = berechneChecksum();
     }
 
     public Pong(int seq, long time, int checksum) {
@@ -17,7 +17,7 @@ public class Pong implements Message {
         this.checksum = checksum;
     }
 
-    private int computeChecksum() {
+    private int berechneChecksum() {
         String data = "PONG" + seq + time;
         int sum = 0;
         for (char c : data.toCharArray()) sum += c;

@@ -9,7 +9,7 @@ public class Ping implements Message {
     public Ping(int seq, long time) {
         this.seq = seq;
         this.time = time;
-        this.checksum = computeChecksum();
+        this.checksum = berechneChecksum();
     }
 
     public Ping(int seq, long time, int checksum) {
@@ -18,7 +18,7 @@ public class Ping implements Message {
         this.checksum = checksum;
     }
 
-    private int computeChecksum() {
+    private int berechneChecksum() {
         String data = "PING" + seq + time;
         int sum = 0;
         for (char c : data.toCharArray()) sum += c;
