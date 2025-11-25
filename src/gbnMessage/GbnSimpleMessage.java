@@ -1,19 +1,16 @@
 package gbnMessage;
 
-public class GbnPing implements GbnMessage {
+public class GbnSimpleMessage implements GbnMessage {
     private final int seq;
     private final long time;
     private final int PACKET_NUMBER;
+    private GbnMsgType msgType;
 
-    public GbnPing(int seq, long time, int packetNumber) {
+    public GbnSimpleMessage(GbnMsgType type, int seq, long time, int packetNumber) {
         this.seq = seq;
         this.time = time;
-        this.PACKET_NUMBER = packetNumber;
-    }
-
-    @Override
-    public GbnMsgType getType() {
-        return GbnMsgType.PING;
+        PACKET_NUMBER = packetNumber;
+        this.msgType = type;
     }
 
     @Override
@@ -33,6 +30,10 @@ public class GbnPing implements GbnMessage {
 
     @Override
     public String toString() {
-        return "Ping[seq=" + seq + ", ts=" + time + "]";
+        return "Pong[seq=" + seq + ", ts=" + time + "]";
+    }
+
+    public GbnMsgType getType() {
+        return msgType;
     }
 }

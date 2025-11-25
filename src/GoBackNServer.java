@@ -5,6 +5,8 @@ import message.*;
 
 import java.io.*;
 
+import static gbnMessage.GbnMsgType.PONG;
+
 public class GoBackNServer {
 
     public static void main(String[] args) throws Exception {
@@ -27,7 +29,7 @@ public class GoBackNServer {
                     actNr = ping.getPacketNr();
                 }
 
-                GbnMessage pong = new GbnPong(ping.getSeq(), System.nanoTime(), ping.getPacketNr());
+                GbnMessage pong = new GbnSimpleMessage(PONG, ping.getSeq(), System.nanoTime(), ping.getPacketNr());
 
                 InetAddress ipAdress = receivePacket.getAddress();
                 int port = receivePacket.getPort();
@@ -38,7 +40,7 @@ public class GoBackNServer {
                 serverSocket.send(sendPacket);
             } catch (MissingPacketException e){
                 System.out.println("Packet " + (actNr+1) + " fehlt. Packet " + ping.getPacketNr() + "wird verworfen.");
-                GbnMessage pong = new GbnPong(ping.getSeq(), System.nanoTime(), actNr);
+                GbnMessage pong = new GbnSimpleMessage(PONG, ping.getSeq(), System.nanoTime(), actNr);
                 InetAddress ipAdress = receivePacket.getAddress();
                 int port = receivePacket.getPort();
                 byte[] sendData = GbnSimpleCodec.encode(pong);

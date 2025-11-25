@@ -1,13 +1,14 @@
 import java.net.*;
 
 import gbnMessage.GbnMessage;
-import gbnMessage.GbnPing;
 import gbnMessage.GbnSimpleCodec;
+import gbnMessage.GbnSimpleMessage;
 
-import java.io.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import static gbnMessage.GbnMsgType.PING;
 
 public class GoBackNClient extends Thread {
     final int WINDOW = 5;
@@ -86,13 +87,15 @@ public class GoBackNClient extends Thread {
     private void sendPacket(DatagramSocket socket, InetAddress ipAdress, int port, int num) {
         try {
             byte[] send = GbnSimpleCodec.encode(
-                    new GbnPing(0, System.nanoTime(), num)
+                    new GbnSimpleMessage(PING,0, System.nanoTime(), num)
             );
             DatagramPacket p = new DatagramPacket(send, send.length, ipAdress, port);
             socket.send(p);
             System.out.println("Sende Packet Nummer " + num);
         }
-        catch (Exception e) { e.printStackTrace(); }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) throws Exception {

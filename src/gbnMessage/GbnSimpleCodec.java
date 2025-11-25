@@ -1,10 +1,9 @@
 package gbnMessage;
 
-import gbnMessage.GbnMessage;
-import gbnMessage.GbnPing;
-import gbnMessage.GbnPong;
-
 import java.nio.charset.StandardCharsets;
+
+import static gbnMessage.GbnMsgType.PING;
+import static gbnMessage.GbnMsgType.PONG;
 
 
 public final class GbnSimpleCodec {
@@ -46,9 +45,9 @@ public final class GbnSimpleCodec {
 
         switch (type) {
             case "PING":
-                return new GbnPing(seq, ts, pnr);
+                return new GbnSimpleMessage(PING, seq, ts, pnr);
             case "PONG":
-                return new GbnPong(seq, ts, pnr);
+                return new GbnSimpleMessage(PONG, seq, ts, pnr);
             default:
                 throw new IllegalArgumentException("Unknown type: " + type);
         }
